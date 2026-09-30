@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "fdcan.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -43,7 +44,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-FDCAN_HandleTypeDef hfdcan1;
 FDCAN_TxHeaderTypeDef TxHeader;
 uint8_t TxData[3] = { '1', '2', '3' };  /* payload "123" (0x31 0x32 0x33) */
 /* USER CODE END PV */
@@ -51,7 +51,7 @@ uint8_t TxData[3] = { '1', '2', '3' };  /* payload "123" (0x31 0x32 0x33) */
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-static void MX_FDCAN1_Init(void);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -88,9 +88,8 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  /* USER CODE BEGIN 2 */
   MX_FDCAN1_Init();
-
+  /* USER CODE BEGIN 2 */
   /* Header of the frame sent in the main loop: standard ID, 3 data bytes, classic CAN */
   TxHeader.Identifier = CAN_TX_ID;
   TxHeader.IdType = FDCAN_STANDARD_ID;
@@ -171,85 +170,7 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-/**
-  * @brief FDCAN1 Initialization: classic CAN, 500 kbit/s.
-  *        Kernel clock = PCLK1 = HSI 16 MHz.
-  *        Bit rate = 16 MHz / (Prescaler 2 * (1 + Seg1 13 + Seg2 2)) = 500 kbit/s,
-  *        sample point 87.5 %.
-  * @retval None
-  */
-static void MX_FDCAN1_Init(void)
-{
-  hfdcan1.Instance = FDCAN1;
-  hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV1;
-  hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
-  hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
-  hfdcan1.Init.AutoRetransmission = ENABLE;
-  hfdcan1.Init.TransmitPause = DISABLE;
-  hfdcan1.Init.ProtocolException = DISABLE;
-  hfdcan1.Init.NominalPrescaler = 2;
-  hfdcan1.Init.NominalSyncJumpWidth = 1;
-  hfdcan1.Init.NominalTimeSeg1 = 13;
-  hfdcan1.Init.NominalTimeSeg2 = 2;
-  hfdcan1.Init.DataPrescaler = 1;
-  hfdcan1.Init.DataSyncJumpWidth = 1;
-  hfdcan1.Init.DataTimeSeg1 = 1;
-  hfdcan1.Init.DataTimeSeg2 = 1;
-  hfdcan1.Init.StdFiltersNbr = 0;
-  hfdcan1.Init.ExtFiltersNbr = 0;
-  hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
-  if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-}
 
-/**
-  * @brief FDCAN MSP Initialization: clock source and pins.
-  *        PA11 -> FDCAN1_RX, PA12 -> FDCAN1_TX (AF9)
-  * @param hfdcan: FDCAN handle pointer
-  * @retval None
-  */
-void HAL_FDCAN_MspInit(FDCAN_HandleTypeDef* hfdcan)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
-
-  if (hfdcan->Instance == FDCAN1)
-  {
-    /* FDCAN kernel clock defaults to HSE after reset; run it from PCLK1 (HSI 16 MHz) */
-    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_FDCAN;
-    PeriphClkInit.FdcanClockSelection = RCC_FDCANCLKSOURCE_PCLK1;
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
-    __HAL_RCC_FDCAN_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-
-    GPIO_InitStruct.Pin = GPIO_PIN_11|GPIO_PIN_12;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    GPIO_InitStruct.Alternate = GPIO_AF9_FDCAN1;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-  }
-}
-
-/**
-  * @brief FDCAN MSP De-Initialization
-  * @param hfdcan: FDCAN handle pointer
-  * @retval None
-  */
-void HAL_FDCAN_MspDeInit(FDCAN_HandleTypeDef* hfdcan)
-{
-  if (hfdcan->Instance == FDCAN1)
-  {
-    __HAL_RCC_FDCAN_CLK_DISABLE();
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_11|GPIO_PIN_12);
-  }
-}
 /* USER CODE END 4 */
 
 /**
